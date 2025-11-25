@@ -11,8 +11,7 @@ on:
       - '.goreleaser.yaml'
       - '.github/workflows/release.yml'
 
-permissions:
-  contents: write
+permissions: write-all
 
 jobs:
   goreleaser:
@@ -39,7 +38,7 @@ jobs:
             echo "Tag $TAG already exists"
           else
             git tag $TAG
-            git push origin $TAG
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $TAG
           fi
 
       - name: Run GoReleaser
