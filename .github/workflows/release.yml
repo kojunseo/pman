@@ -35,6 +35,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git tag v${{ steps.version.outputs.VERSION }}
+          git push origin v${{ steps.version.outputs.VERSION }}
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
