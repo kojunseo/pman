@@ -2,8 +2,14 @@ name: goreleaser
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
+    paths:
+      - 'version'
+      - 'go.mod'
+      - 'main.go'
+      - '.goreleaser.yaml'
+      - '.github/workflows/release.yml'
 
 permissions:
   contents: write
@@ -20,10 +26,19 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
+      - name: Read version
+        id: version
+        run: echo "VERSION=$(cat version)" >> $GITHUB_OUTPUT
+
+      - name: Tag commit
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag v${{ steps.version.outputs.VERSION }}
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
           version: latest
           args: release --clean
