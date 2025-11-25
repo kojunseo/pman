@@ -24,19 +24,41 @@
 ## 🚀 Installation
 
 ### Download Binary
-Download the latest binary for your OS (macOS/Linux) from the [Releases](https://github.com/YOUR_USERNAME/portmanager/releases) page.
+
+Download the latest binary for your OS from the [Releases](https://github.com/kojunseo/pman/releases) page.
+
+#### macOS
+
+**Apple Silicon (M1/M2/M3)**
+```bash
+curl -L -o pman.tar.gz https://github.com/kojunseo/pman/releases/latest/download/pman_Darwin_arm64.tar.gz
+tar -xvf pman.tar.gz
+sudo mv pman /usr/local/bin/
+rm pman.tar.gz
+```
+
+**Intel**
+```bash
+curl -L -o pman.tar.gz https://github.com/kojunseo/pman/releases/latest/download/pman_Darwin_x86_64.tar.gz
+tar -xvf pman.tar.gz
+sudo mv pman /usr/local/bin/
+rm pman.tar.gz
+```
+
+#### Linux (Ubuntu/Debian)
 
 ```bash
-# Example for macOS (Apple Silicon)
-tar -xvf pman_Darwin_arm64.tar.gz
+curl -L -o pman.tar.gz https://github.com/kojunseo/pman/releases/latest/download/pman_Linux_x86_64.tar.gz
+tar -xvf pman.tar.gz
 sudo mv pman /usr/local/bin/
+rm pman.tar.gz
 ```
 
 ### Build from Source
 Requirements: Go 1.21+
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/portmanager.git
+git clone https://github.com/kojunseo/portmanager.git
 cd portmanager
 go build -o pman main.go
 sudo mv pman /usr/local/bin/
