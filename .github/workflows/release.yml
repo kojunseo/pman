@@ -1,4 +1,4 @@
-name: goreleaser
+name: release
 
 on:
   push:
@@ -11,41 +11,117 @@ on:
       - '.goreleaser.yaml'
       - '.github/workflows/release.yml'
 
-permissions: write-all
+permissions:
+  contents: write
 
 jobs:
-  goreleaser:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: stable
+
       - name: Read version
         id: version
         run: echo "VERSION=$(cat version | tr -d '[:space:]')" >> $GITHUB_OUTPUT
 
       - name: Tag commit
         run: |
+          set -euo pipefail
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           TAG="v${{ steps.version.outputs.VERSION }}"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag $TAG already exists"
           else
-            git tag $TAG
-            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git $TAG
+            git tag "$TAG"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git "$TAG"
           fi
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
+      - name: Build release artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          build() {
+            local os="$1"
+            local arch="$2"
+            local os_name="${os^}"
+            local arch_name="$arch"
+            case "$arch" in
+              amd64) arch_name="x86_64" ;;
+              386) arch_name="i386" ;;
+            esac
+            local tmp_dir="dist/${os}_${arch}"
+            mkdir -p "$tmp_dir"
+            GOOS="$os" GOARCH="$arch" CGO_ENABLED=0 go build -o "$tmp_dir/pman" ./main.go
+            tar -czf "dist/pman_${os_name}_${arch_name}.tar.gz" -C "$tmp_dir" pman
+            rm -rf "$tmp_dir"
+          }
+          build darwin amd64
+          build darwin arm64
+          build linux amd64
+
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          shasum -a 256 *.tar.gz > checksums.txt
+
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          release_name: pman v${{ steps.version.outputs.VERSION }}
+          target_commitish: ${{ github.sha }}
+          draft: false
+          prerelease: false
+
+      - name: Upload macOS (arm64)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/pman_Darwin_arm64.tar.gz
+          asset_name: pman_Darwin_arm64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload macOS (x86_64)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/pman_Darwin_x86_64.tar.gz
+          asset_name: pman_Darwin_x86_64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Linux (x86_64)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/pman_Linux_x86_64.tar.gz
+          asset_name: pman_Linux_x86_64.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload checksums
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/checksums.txt
+          asset_name: checksums.txt
+          asset_content_type: text/plain
