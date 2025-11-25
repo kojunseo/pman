@@ -17,6 +17,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,7 +44,7 @@ jobs:
             echo "Tag $TAG already exists"
           else
             git tag "$TAG"
-            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git "$TAG"
+            git push https://x-access-token:${RELEASE_TOKEN}@github.com/${{ github.repository }}.git "$TAG"
           fi
 
       - name: Build release artifacts
@@ -78,18 +80,18 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ env.RELEASE_TOKEN }}
         with:
           tag_name: v${{ steps.version.outputs.VERSION }}
           release_name: pman v${{ steps.version.outputs.VERSION }}
-          target_commitish: ${{ github.sha }}
+          commitish: ${{ github.sha }}
           draft: false
           prerelease: false
 
       - name: Upload macOS (arm64)
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ env.RELEASE_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/pman_Darwin_arm64.tar.gz
@@ -99,7 +101,7 @@ jobs:
       - name: Upload macOS (x86_64)
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ env.RELEASE_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/pman_Darwin_x86_64.tar.gz
@@ -109,7 +111,7 @@ jobs:
       - name: Upload Linux (x86_64)
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ env.RELEASE_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/pman_Linux_x86_64.tar.gz
@@ -119,7 +121,7 @@ jobs:
       - name: Upload checksums
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ env.RELEASE_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/checksums.txt
