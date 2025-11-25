@@ -28,14 +28,19 @@ jobs:
           go-version: stable
       - name: Read version
         id: version
-        run: echo "VERSION=$(cat version)" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$(cat version | tr -d '[:space:]')" >> $GITHUB_OUTPUT
 
       - name: Tag commit
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git tag v${{ steps.version.outputs.VERSION }}
-          git push origin v${{ steps.version.outputs.VERSION }}
+          TAG="v${{ steps.version.outputs.VERSION }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git tag $TAG
+            git push origin $TAG
+          fi
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
